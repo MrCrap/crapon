@@ -71,5 +71,3 @@ class FundPipeline(object):
 		data = [item[k] for k in keys]
 
 		return self.dbpool.runOperation(sql, data)
-	# end
-
