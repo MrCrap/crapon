@@ -72,3 +72,5 @@ class FundPipeline(object):
 
 		return self.dbpool.runOperation(sql, data)
  
+
+ 
