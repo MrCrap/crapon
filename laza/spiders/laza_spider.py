@@ -189,14 +189,14 @@ class LazaSpider(scrapy.Spider):
 				price_old = json_script['offers']['highPrice']
 			except:
 				price_old = '0'
-			# rumus e
+			
+			# RUMUS Currencer
 			# pengurangan = hargaBesar - HargaMurah
 			# diskon = pengurangan / hargaBesar * 100
 			
 			hargakurang = int(price_old) - int(price)
 			harga_diskon = int(hargakurang)/int(price_old) * 100
 			discount = harga_diskon
-			print 'diskon =========================>:', discount
 
 		price = str(price).lower().replace('rp ', '').replace('.', '').replace(',', '')
 		price_old = str(price_old).lower().replace('rp ', '').replace('.', '').replace(',', '')
