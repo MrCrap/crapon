@@ -14,7 +14,6 @@ BOT_NAME = 'laza'
 SPIDER_MODULES = ['laza.spiders']
 NEWSPIDER_MODULE = 'laza.spiders'
 
-
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'laza (+http://www.yourdomain.com)'
 
@@ -96,21 +95,21 @@ ITEM_PIPELINES = {
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
-FEED_STORAGES = {
-	'ftp': None,
-}
-FEED_EXPORTERS = {
-	'csv': None,
-}
-
-# ITEM_PIPELINES = {    
-# 	'laza.pipelines.FundPipeline': 500,    
-# }  
- 
-# DB_SERVER = 'MySQLdb'			# For detail, please see twisted doc
-# DB_CONNECT = {
-# 	'db': 'ScrapyEcom',			# Your db   
-# 	'user': 'toro',				# 
-# 	'passwd': '',				# 
-# 	'host': '127.0.0.1',		# Your Server
+# FEED_STORAGES = {
+# 	'ftp': None,
 # }
+# FEED_EXPORTERS = {
+# 	'csv': None,
+# }
+
+ITEM_PIPELINES = {    
+	'laza.pipelines.FundPipeline': 500,    
+}  
+ 
+DB_SERVER = 'MySQLdb'			# For detail, please see twisted doc
+DB_CONNECT = {
+	'db': 'ScrapyEcom',			# Your db   
+	'user': 'toro',				# 
+	'passwd': '',				# 
+	'host': '127.0.0.1',		# Your Server
+}

@@ -10,7 +10,6 @@ settings = get_project_settings()
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
-
 class LazaPipeline(object):
 	def process_item(self, item, spider):
 		return item
@@ -69,5 +68,5 @@ class FundPipeline(object):
 		qm = u','.join([u'%s'] * len(keys))
 		sql = insert % (fields, qm)
 		data = [item[k] for k in keys]
-
+		
 		return self.dbpool.runOperation(sql, data)

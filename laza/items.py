@@ -7,16 +7,12 @@
 
 import scrapy
 
-
 class LazaItem(scrapy.Item):
-	# define the fields for your item here like:
-	# name = scrapy.Field()
-	# pass
-	title = scrapy.Field()
-	link_produk = scrapy.Field()
-	price = scrapy.Field()
-	price_old = scrapy.Field()
-	diskon = scrapy.Field()
-	img=scrapy.Field()
-	description=scrapy.Field()
-	brand=scrapy.Field()
+	Title = scrapy.Field()
+	ProductUrl = scrapy.Field()
+	Price = scrapy.Field()
+	OldPrice = scrapy.Field()
+	Discount = scrapy.Field()
+	Images = scrapy.Field()
+	Description = scrapy.Field()
+	Brand = scrapy.Field()
