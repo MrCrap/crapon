@@ -17,7 +17,7 @@ class LazaPipeline(object):
 
 class JsonPipeline(object):
 	def __init__(self):
-		self.file = open("ResultJSON.json", 'wb')
+		self.file = open("Result.json", 'wb')
 		self.exporter = JsonItemExporter(self.file, encoding='utf-8', ensure_ascii=False)
 		self.exporter.start_exporting()
  
@@ -32,7 +32,7 @@ class JsonPipeline(object):
 
 class CsvPipeline(object):
 	def __init__(self):
-		self.file = open("ResultCSV.csv", 'wb')
+		self.file = open("Result.csv", 'wb')
 		self.exporter = CsvItemExporter(self.file, unicode)
 		self.exporter.start_exporting()
  

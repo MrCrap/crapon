@@ -25,14 +25,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 ListBrands = ['iphone', 'samsung', 'asus', 'xiaomi', 'oppo', 'vivo', 'lg', 'huawei', 'lenovo']
-def valid_xml_char_ordinal(c):
-	codepoint = ord(c)
-	return (
-		0x20 <= codepoint <= 0xD7FF or
-		codepoint in (0x9, 0xA, 0xD) or
-		0xE000 <= codepoint <= 0xFFFD or
-		0x10000 <= codepoint <= 0x10FFFF
-	)
+
 def Currencer(Number, Preffix=False, Decimal=2):
 	locale.setlocale(locale.LC_NUMERIC, 'IND')
 	IDR = locale.format("%.*f", (Decimal, Number), True)
@@ -49,8 +42,8 @@ class LazaSpider(scrapy.Spider):
 	]
 
 	start_urls = [
-		'http://www.lazada.co.id/beli-handphone/samsung/?itemperpage=20', 
-		'https://www.mataharimall.com/p-2/handphone?per_page=20',
+		'http://www.lazada.co.id/beli-handphone/samsung/?itemperpage=120',
+		'https://www.mataharimall.com/p-2/handphone?per_page=120',
 		'https://www.jd.id/category/jual-smartphone-875061468.html'
 		]
 	rules = ( Rule(LinkExtractor(allow=(), restrict_css=('.c-paging__next-link', 'a.p-turn.p-next', '.c-pagination--next a')), callback="parse", follow=False),)
@@ -142,7 +135,17 @@ class LazaSpider(scrapy.Spider):
 			img = response.css('a.cloud-zoom img::attr(src)').extract_first()
 			brand = response.css('.c-recomendation-product__title h1::text').extract_first()
 			if brand:
-				brand = brand.replace('Produk Lainnya dari Smartphone', '')
+				if 'Produk Lainnya dari Smartphone' in brand:
+					brand = brand.replace('Produk Lainnya dari Smartphone', '')
+
+				elif 'Produk Lainnya dari Handphone Basic' in brand:
+					brand = brand.replace('Produk Lainnya dari Handphone Basic ', '')
+
+				elif 'Produk Lainnya dari' in brand:
+					brand = brand.replace('Produk Lainnya dari ', '')
+
+				else:
+					brand = brand
 
 			desc = response.css('#js-tab-descripsi-produk p').extract()
 			desc = ''.join(desc).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
@@ -172,12 +175,9 @@ class LazaSpider(scrapy.Spider):
 			else:
 				brand = 'Smartphone'
 			try:
-				price = json_script['offers']['lowPrice']
+				price = int(json_script['offers']['lowPrice'])
 			except:
-				price = response.css('.p-price span ::text').extract_first()
-
-			if price:
-				price = price.strip()
+				price = 0
 
 			img = 'https:'+json_script['image']
 			desc = response.css('div.cnt p').extract()
@@ -186,30 +186,39 @@ class LazaSpider(scrapy.Spider):
 				desc = 'Harga {title}, spek {title}, masuk dalam kategori {cat}. Cek harga dan spek {title} terupdate setiap harinya'.format(title=title, cat=brand)
 
 			try:
-				price_old = json_script['offers']['highPrice']
+				price_old = int(json_script['offers']['highPrice'].strip())
 			except:
-				price_old = '0'
+				price_old = 0
 			
 			# RUMUS Currencer
 			# pengurangan = hargaBesar - HargaMurah
 			# diskon = pengurangan / hargaBesar * 100
-			
-			hargakurang = int(price_old) - int(price)
-			harga_diskon = int(hargakurang)/int(price_old) * 100
-			discount = harga_diskon
+			if int(price_old) > 0:
+				hargaAwal = int(price_old)
+			else:
+				hargaAwal = int(price)
+
+			HargaSelisih = hargaAwal - int(price)
+			if int(HargaSelisih) > 0:
+				HargaDiskon = (float(HargaSelisih) / float(hargaAwal)) * 100
+				discount = int(HargaDiskon)
+			else:
+				discount = 0
+
+			print 'DISOKON ====>>>>> : ', discount, domain
 
 		price = str(price).lower().replace('rp ', '').replace('.', '').replace(',', '')
 		price_old = str(price_old).lower().replace('rp ', '').replace('.', '').replace(',', '')
 		
 		data = dict(
-			title = title.encode('utf-8'),
+			title = title,
 			price = price,
 			price_old = price_old,
 			discount = discount,
 			produkUrl = response.url,
 			img = img,
 			brand = brand, 
-			desc=desc.encode('utf-8')
+			desc=desc
 		)
 
 		return self.Iteming(data)
