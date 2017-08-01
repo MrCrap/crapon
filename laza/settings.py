@@ -13,6 +13,10 @@ BOT_NAME = 'laza'
 
 SPIDER_MODULES = ['laza.spiders']
 NEWSPIDER_MODULE = 'laza.spiders'
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware' : None,
+    'stillherecrawler.rotate_useragent.RotateUserAgentMiddleware' :400
+}
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'laza (+http://www.yourdomain.com)'
@@ -21,18 +25,18 @@ NEWSPIDER_MODULE = 'laza.spiders'
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 32
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 0
+DOWNLOAD_DELAY = 1
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
-COOKIES_ENABLED = False
+COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
@@ -57,7 +61,7 @@ SPIDER_MIDDLEWARES = {
 #    'laza.middlewares.LazaSpiderMiddleware': 543,
 # }
 DOWNLOADER_MIDDLEWARES = {
-	'scrapy.contrib.downloadermiddleware.httpcompression.HttpCompressionMiddleware': None
+	'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': None
 }
 
 # Enable or disable extensions

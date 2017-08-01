@@ -17,10 +17,10 @@ from scrapy.selector import HtmlXPathSelector
 
 from laza.items import LazaItem
 import ast
-import json
+import simplejson
 import locale
+import sys, json
 
-import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -38,13 +38,15 @@ class LazaSpider(scrapy.Spider):
 	allowed_domains = [
 		'www.lazada.co.id', 
 		'www.mataharimall.com', 
-		'www.jd.id'
+		'www.jd.id',
+		'www.blibli.com'
 	]
 
 	start_urls = [
-		'http://www.lazada.co.id/beli-handphone/samsung/?itemperpage=120',
-		'https://www.mataharimall.com/p-2/handphone?per_page=120',
-		'https://www.jd.id/category/jual-smartphone-875061468.html'
+		# 'http://www.lazada.co.id/beli-handphone/samsung/?itemperpage=120',
+		# 'https://www.mataharimall.com/p-2/handphone?per_page=120',
+		# 'https://www.jd.id/category/jual-smartphone-875061468.html',
+		'https://www.blibli.com/handphone/54593?c=HA-1000002&r=120',
 		]
 	rules = ( Rule(LinkExtractor(allow=(), restrict_css=('.c-paging__next-link', 'a.p-turn.p-next', '.c-pagination--next a')), callback="parse", follow=False),)
 
@@ -78,6 +80,43 @@ class LazaSpider(scrapy.Spider):
 					response.urljoin(next_page),
 					callback=self.parse
 				)
+		elif domain == 'www.blibli.com':
+			item_links = response.css('a.single-product ::attr(href)').extract()
+			for a in item_links:
+				yield scrapy.Request(a, callback=self.Parsering, meta={'domain': domain})
+
+			# Pagination Progress
+			# next_page = response.css('a.pagingButton.next-button ::attr(onclick)').extract_first()
+			# print 'next_page atas ==== ', next_page
+			# perPage = next_page[-5:].replace(');', '')
+			# print 'perPage ==== ', perPage
+
+			# linkPageAwal = 'https://www.blibli.com/handphone/54593?c=HA-1000002&r=120'
+
+			# param = '&i=%s'%(perPage)
+			# next_page = linkPageAwal+param
+			# if next_page:
+			# 	print 'next_page ====: ', next_page
+			# 	yield scrapy.Request(
+			# 		response.urljoin(next_page),
+			# 		callback=self.parse
+			# 	)
+
+			# if linkPageAwal:
+			# 	print 'jmlh : ', jml
+
+			# 	jml += 120
+			# 	if jml == 0:
+			# 		LinkNext = linkPageAwal
+			# 	else:
+			# 		LinkNext = linkPageAwal+param%(jml)
+
+			# 	print 'scripting pagination=====', jml, LinkNext
+
+			# 	yield scrapy.Request(
+			# 		response.urljoin(LinkNext),
+			# 		callback=self.parse
+			# 	)
 
 		else:
 			# matahari
@@ -163,6 +202,30 @@ class LazaSpider(scrapy.Spider):
 			except:
 				price_old = '0'
 
+		elif domain == 'www.blibli.com':
+			# Prices = self.getVal(response.xpath('h1[@id="priceDisplay"]/text()').extract_first(),' RPrp.,')
+			print 'Prices ========= ', response.xpath('h2[@id="priceDisplay"]/text()').extract_first()
+			print 'Prices ========= ', response.xpath('//div[@class="product-price"]/div[@class="new-price"]/span[@class="new-price-text"]/text()').extract_first()
+
+			dataJsonGet = str(response.xpath('//script[@type="application/ld+json"]/text()').extract_first()).strip()
+			DataJSON = json.loads(dataJsonGet)
+			# try:
+			# 	DataJSON = json.loads(dataJsonGet, strict=False)
+			# except:
+			# 	DataJSON = simplejson.loads(dataJsonGet, strict=False)
+
+			title = DataJSON['name']
+			price = DataJSON['offers']['price']
+			
+			price_old = 0
+			
+			img = DataJSON['image']
+			discount = 0
+			
+			brand = DataJSON['brand']['name']
+			desc = str(DataJSON['description']).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
+			
+
 		else:
 			# jd
 			price_script = response.xpath('//script[@type="application/ld+json"]/text()').extract_first()
@@ -224,8 +287,6 @@ class LazaSpider(scrapy.Spider):
 		return self.Iteming(data)
 
 	def Paginations(self, domain):
-		print 'domain == pagination ==== > ;', domain
-
 		if domain == 'www.lazada.co.id':
 			NEXT_PAGE_SELECTOR = '.c-paging__next-link ::attr(href)'
 		elif domain == 'www.jd.id':
@@ -255,3 +316,10 @@ class LazaSpider(scrapy.Spider):
 			item['Description']= data['desc']
 
 		yield item
+
+	def getVal(self,v,t):
+		s = v
+		trash = t
+		for char in trash:
+			s = s.replace(char,'')
+		return int(s)
