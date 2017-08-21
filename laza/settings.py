@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# import MySQLdb.cursors
+
 # Scrapy settings for laza project
 #
 # For simplicity, this file contains only settings considered important or
@@ -15,7 +17,8 @@ SPIDER_MODULES = ['laza.spiders']
 NEWSPIDER_MODULE = 'laza.spiders'
 DOWNLOADER_MIDDLEWARES = {
     'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware' : None,
-    'stillherecrawler.rotate_useragent.RotateUserAgentMiddleware' :400
+    'stillherecrawler.rotate_useragent.RotateUserAgentMiddleware' :400,
+    'scrapy_fake_useragent.middleware.RandomUserAgentMiddleware' :400
 }
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -30,7 +33,8 @@ CONCURRENT_REQUESTS = 32
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 1
+DOWNLOAD_DELAY = 0
+
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -57,9 +61,6 @@ SPIDER_MIDDLEWARES = {
 
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
-# DOWNLOADER_MIDDLEWARES = {
-#    'laza.middlewares.LazaSpiderMiddleware': 543,
-# }
 DOWNLOADER_MIDDLEWARES = {
 	'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': None
 }
@@ -70,12 +71,29 @@ DOWNLOADER_MIDDLEWARES = {
 #    'scrapy.extensions.telnet.TelnetConsole': None,
 #}
 
+MEDIA_ALLOW_REDIRECTS = True
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
+ITEM_PIPELINES = {'scrapy.pipelines.images.ImagesPipeline': 1}
 ITEM_PIPELINES = {
 	'laza.pipelines.LazaPipeline': 300,
-	'laza.pipelines.JsonPipeline': 300,
-	'laza.pipelines.CsvPipeline': 500,
+	'laza.pipelines.MongoDBEnginePipeline': 300,
+	'laza.pipelines.MyImagesPipeline': 100,
+	# 'laza.pipelines.CsvPipeline': 500,
+	# 'laza.pipelines.JsonPipeline': 300,
+	# 'laza.pipelines.MySQLStorePipeline': 500,
+	# 'laza.pipelines.FundPipeline': 500,
+}
+
+# Image downloader dump dir
+IMAGES_STORE = '/Users/tor/Documents/diner/tensor/lazadah/laza/img'
+IMAGES_URLS_FIELD = 'image_urls'
+IMAGES_RESULT_FIELD = 'ImagesPath'
+
+IMAGES_EXPIRES = 30
+IMAGES_THUMBS = {
+    'small': (50, 50),
+    'big': (213, 213),
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -100,22 +118,31 @@ ITEM_PIPELINES = {
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 #### Config for dump to JSON, CSV Files 
-FEED_STORAGES = {
-	'ftp': None,
-}
-FEED_EXPORTERS = {
-	'csv': None,
-}
-
-
-# ITEM_PIPELINES = {    
-# 	'laza.pipelines.FundPipeline': 500,    
-# }  
- 
-# DB_SERVER = 'MySQLdb'			# For detail, please see twisted doc
-# DB_CONNECT = {
-# 	'db': 'ScrapyEcom',			# Your db   
-# 	'user': 'toro',				# 
-# 	'passwd': '',				# 
-# 	'host': '127.0.0.1',		# Your Server
+# FEED_STORAGES = {
+# 	'ftp': None,
 # }
+
+# FEED_EXPORTERS = {
+# 	'csv': None,
+# }
+
+ 
+DB_SERVER = 'MySQLdb'			# For detail, please see twisted doc
+DB_HOST = '127.0.0.1'
+DB_USER = 'toro'
+DB_PASSWD = ''
+DB_PORT = 3306
+DB_DB = 'ScrapyEcom'
+
+DB_CONNECT = {
+	'db': 'ScrapyEcom',			# Your db   
+	'user': 'toro',				# 
+	'passwd': '',				# 
+	'host': '127.0.0.1',		# Your Server
+	'charset': 'utf8',
+	'use_unicode': True,
+	# 'cursorclass' : MySQLdb.cursors.DictCursor,
+	'cp_reconnect': True,
+	'cp_noisy': True
+}
+DOWNLOAD_FAIL_ON_DATALOSS = False

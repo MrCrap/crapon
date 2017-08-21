@@ -1,0 +1,55 @@
+2017-08-14 13:49:07 [scrapy.utils.log] INFO: Scrapy 1.4.0 started (bot: laza)
+2017-08-14 13:49:07 [scrapy.utils.log] INFO: Overridden settings: {'NEWSPIDER_MODULE': 'laza.spiders', 'CONCURRENT_REQUESTS': 32, 'SPIDER_MODULES': ['laza.spiders'], 'DOWNLOAD_FAIL_ON_DATALOSS': False, 'BOT_NAME': 'laza', 'EDITOR': 'subl -w', 'LOG_FILE': 'logs/default/laza/a85a4f5980bc11e7b4fa0c4de9d04b88.log'}
+2017-08-14 13:49:07 [scrapy.middleware] INFO: Enabled extensions:
+['scrapy.extensions.memusage.MemoryUsage',
+ 'scrapy.extensions.logstats.LogStats',
+ 'scrapy.extensions.telnet.TelnetConsole',
+ 'scrapy.extensions.corestats.CoreStats']
+2017-08-14 13:49:07 [scrapy.middleware] INFO: Enabled downloader middlewares:
+['scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware',
+ 'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware',
+ 'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware',
+ 'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware',
+ 'scrapy.downloadermiddlewares.retry.RetryMiddleware',
+ 'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware',
+ 'scrapy.downloadermiddlewares.redirect.RedirectMiddleware',
+ 'scrapy.downloadermiddlewares.cookies.CookiesMiddleware',
+ 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware',
+ 'scrapy.downloadermiddlewares.stats.DownloaderStats']
+2017-08-14 13:49:07 [scrapy.middleware] INFO: Enabled spider middlewares:
+['scrapy.spidermiddlewares.httperror.HttpErrorMiddleware',
+ 'scrapy.spidermiddlewares.offsite.OffsiteMiddleware',
+ 'laza.middlewares.LazaSpiderMiddleware',
+ 'scrapy.spidermiddlewares.referer.RefererMiddleware',
+ 'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware',
+ 'scrapy.spidermiddlewares.depth.DepthMiddleware']
+2017-08-14 13:49:07 [twisted] CRITICAL: Unhandled error in Deferred:
+2017-08-14 13:49:07 [twisted] CRITICAL: 
+Traceback (most recent call last):
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/twisted/internet/defer.py", line 1386, in _inlineCallbacks
+    result = g.send(result)
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/crawler.py", line 95, in crawl
+    six.reraise(*exc_info)
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/crawler.py", line 77, in crawl
+    self.engine = self._create_engine()
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/crawler.py", line 102, in _create_engine
+    return ExecutionEngine(self, lambda _: self.stop())
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/core/engine.py", line 70, in __init__
+    self.scraper = Scraper(crawler)
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/core/scraper.py", line 71, in __init__
+    self.itemproc = itemproc_cls.from_crawler(crawler)
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/middleware.py", line 58, in from_crawler
+    return cls.from_settings(crawler.settings, crawler)
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/middleware.py", line 34, in from_settings
+    mwcls = load_object(clspath)
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/scrapy/utils/misc.py", line 44, in load_object
+    mod = import_module(module)
+  File "/Users/tor/anaconda2/lib/python2.7/importlib/__init__.py", line 37, in import_module
+    __import__(name)
+  File "laza/pipelines.py", line 9, in <module>
+    import MySQLdb
+  File "/Users/tor/anaconda2/lib/python2.7/site-packages/MySQLdb/__init__.py", line 19, in <module>
+    import _mysql
+ImportError: dlopen(/Users/tor/anaconda2/lib/python2.7/site-packages/_mysql.so, 2): Library not loaded: /usr/local/opt/mysql/lib/libmysqlclient.20.dylib
+  Referenced from: /Users/tor/anaconda2/lib/python2.7/site-packages/_mysql.so
+  Reason: image not found

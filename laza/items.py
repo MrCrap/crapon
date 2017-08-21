@@ -16,3 +16,13 @@ class LazaItem(scrapy.Item):
 	Images = scrapy.Field()
 	Description = scrapy.Field()
 	Brand = scrapy.Field()
+	Summary = scrapy.Field()
+	Slug = scrapy.Field()
+	Keyword = scrapy.Field()
+	Tag = scrapy.Field()
+	Domain = scrapy.Field()
+	Spek = scrapy.Field()
+	ImagesPath = scrapy.Field()
+	SmallDesc = scrapy.Field()
+	Category = scrapy.Field()
+	
