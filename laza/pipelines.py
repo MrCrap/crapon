@@ -37,6 +37,10 @@ class MyImagesPipeline(ImagesPipeline):
 class MongoDBEnginePipeline(object):
 	def process_item(self, item, spider):
 		connect('laza')
+
+		# # Query search_text order by text_scored
+		# cek = [x.Title for x in PostProduk.objects.search_text('xiaomi').order_by('$text_score')]
+
 		ceker = [x.Slug for x in PostProduk.objects(Slug=item['Slug']) if x.Slug == item['Slug']]
 		post = PostProduk(
 			Title=item['Title'],
@@ -59,13 +63,14 @@ class MongoDBEnginePipeline(object):
 		if not ceker:
 			post.save()
 
+
 		return item
 
 class PostProduk(Document):
 	Title = StringField()
 	ProductUrl = StringField(required=True)
 	Price = StringField(max_length=100)
-	OldPrice = StringField(max_length=10)
+	OldPrice = StringField(max_length=50)
 	Discount = StringField(max_length=100)
 	Images = ListField(StringField())
 	Description = StringField()
@@ -78,6 +83,14 @@ class PostProduk(Document):
 	Spek = StringField()
 	ImagesPath = ListField(StringField())
 	Category = StringField(max_length=50)
+	meta = {
+        'indexes': [
+            'Title',
+            '$Title',  # text index
+            '#Title',  # hashed index
+            ('Title', '-Title')
+        ]
+    }
 
 
 class JsonPipeline(object):

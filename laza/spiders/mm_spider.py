@@ -46,21 +46,24 @@ class Sites(Document):
 	_id = StringField()
 	category = StringField()
 	url = StringField()
+	types = StringField()
 		
 class LazaSpider(scrapy.Spider):
 	name = "mm"
-	allowed_domains = [ 'www.lazada.co.id' ]
+	allowed_domains = [ 'www.mataharimall.com' ]
 
 	start_urls = []
 	rules = ( Rule(LinkExtractor(allow=()), callback="parse", follow=False), )
 
 	def parse(self, response):
-		item_links = response.css('a.c-product-card__name ::attr(href)').extract()
+		item_links = response.css('a.c-card-product__link ::attr(href)').extract()
 		for a in item_links:
-			yield scrapy.Request('http://www.lazada.co.id'+a, callback=self.Parsering, meta={'domain': 'lazada.co.id'})
+			url_query = urlparse(a).query
+			links = url_query.split('&')[2].replace('ct=', '').replace('https%3A%2F%2F', 'https://').replace('%2F', '/')
+			yield scrapy.Request(links, callback=self.Parsering)
 
-		# Pagination Progress
-		# next_page = response.css('.c-paging__next-link ::attr(href)').extract_first()
+		# # Pagination Progress
+		# next_page = response.css('.c-pagination--next a ::attr(href)').extract_first()
 		# if next_page:
 		# 	yield scrapy.Request(
 		# 		response.urljoin(next_page),
@@ -69,26 +72,50 @@ class LazaSpider(scrapy.Spider):
 
 	def start_requests(self):
 		connect('laza')
-		testing = Sites.objects()
+		testing = Sites.objects(types='mm')
 		for x in testing:
 			yield self.make_requests_from_url(x['url'])
 		connect().close()
 
 	def Parsering(self, response):
- 		cats = response.css('ul.breadcrumb__list li.breadcrumb__item span.breadcrumb__item-text a>span ::text').extract()
-		category = cats[1]
-		domain = response.meta.get('domain')
-		title = response.xpath("//meta[@property='og:title']/@content").extract_first()
-		if title:
-			title = str(title).strip().replace('\n', ' ')
+ 		cats = response.css('ul.c-breadcrumb__body li.c-breadcrumb__item a>span ::text').extract()
+		category = cats[2]
+		dataJsonGet = str(response.xpath('//script[@type="application/ld+json"]/text()').extract_first()).strip()
+		DataJSON = json.loads(dataJsonGet)
 
-		price = response.css('span#special_price_box ::text').extract_first()
-		img = response.css('.productImage ::attr(data-big)').extract()
-		img = [str(x) for x in img]
-		brand = response.css('.prod_header_brand_action a span ::text').extract_first()
+		title = DataJSON['name']
+		title = str(title).strip().replace('\n', ' ')
+
+		price = DataJSON['offers']['price']
+		img = str(DataJSON['image']).split()
+		brand = DataJSON['brand']['name']
+		desc = str(DataJSON['description']).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
+
+		spek = response.css('table.c-table-spec-products').extract_first()
+		spek = spek.strip().replace('\n', '').replace('                        ', '').replace('        ', '').replace('            ', '')
+		spek = spek.replace('                                                                                                    ','')
 		
-		Slug = slugify(title)
-		Tag = Slug.replace('-', ',').lower()
+		if price:
+			price = str(price).strip()
+
+		try:
+			discount = response.css('span.c-discount-label ::text').extract_first()
+			discount = str(discount)
+			if discount == 'None':
+				discount = '0'
+		except:
+			discount = '0'
+
+		try:
+			price_old = response.css('div.c-product__price ::text').extract_first()
+			price_old = str(price_old)
+		except:
+			price_old = '0'
+
+		Tag = brand
+		SlugTitle = title.replace(' - ', ' ')
+		SlugReplace = SlugTitle.replace('[', '').replace(']', '').replace('/ ', '').replace('/', '')
+		Slug = SlugReplace.replace(' ', '-').lower()
 
 		try:
 			Summary = response.xpath("//meta[@property='og:description']/@content").extract_first()
@@ -97,40 +124,6 @@ class LazaSpider(scrapy.Spider):
 		
 		Keyword = Slug.replace('-', ',')
 		Keyword = Keyword+',bandingkan,harga,spek,murah'
-
-		desc = response.css('#productDetails p').extract()
-		desc = ''.join(desc).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
-		if not desc:
-			descSel = response.css('.product-description__block ::text').extract()
-			desc = ''.join(descSel).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
-
-		if not desc:
-			desc = 'Harga {title}, spek {title}, masuk dalam kategori {cat}. Cek harga dan spek {title} terupdate setiap harinya'.format(title=title, cat=brand)
-
-		# Build the summary with the sentences dictionary
-		# st = SummaryTool()
-		# sentences_dic = st.get_senteces_ranks(desc)
-		# summarys = st.get_summary(title, desc, sentences_dic)
-		# small_desc = summarys.strip()
-		small_desc = ''
-
-		spek = response.css('table.specification-table').extract_first()
-		spek = spek.strip().replace('\n', '').replace('                        ', '').replace('        ', '').replace('            ', '')
-		spek = spek.replace('                                                                                                    ','')
-
-		try:
-			discount = str(response.css('#product_saving_percentage ::text').extract_first())
-			if discount == 'None':
-				discount = '0'
-		except:
-			discount = '0'
-		try:
-			price_old = str(response.css('span.price_erase > #price_box ::text').extract_first())
-		except:
-			price_old = '0'
-
-		price = str(price).lower().replace('rp ', '').replace('.', '').replace(',', '').strip()
-		price_old = str(price_old).lower().replace('rp ', '').replace('.', '').replace(',', '').strip()
 		
 		data = dict(
 			title = title,
@@ -145,9 +138,9 @@ class LazaSpider(scrapy.Spider):
 			Slug = Slug,
 			Keyword = Keyword,
 			Tag = str(Tag),
-			Domain = domain,
+			Domain = 'mataharimall.com',
 			Spek = str(spek),
-			SmallDesc = small_desc,
+			SmallDesc = '',
 			category=category
 		)
 
@@ -176,26 +169,3 @@ class LazaSpider(scrapy.Spider):
 			item['Category'] = data['category']
 			
 		yield item
-
-
-
-
-# class MySpider1(scrapy.Spider):
-# 	print '1'
-# 	name = 'spider1'
-
-# class MySpider2(scrapy.Spider):
-# 	print '2'
-# 	name = 'spider1'
-
-# configure_logging()
-# runner = CrawlerRunner()
-
-# @defer.inlineCallbacks
-# def crawl():
-# 	yield runner.crawl(MySpider1)
-# 	yield runner.crawl(MySpider2)
-# 	reactor.stop()
-
-# crawl()
-# reactor.run()
