@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 # import MySQLdb.cursors
+from PIL import ImageFile
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Scrapy settings for laza project
 #
@@ -86,7 +89,7 @@ ITEM_PIPELINES = {
 }
 
 # Image downloader dump dir
-IMAGES_STORE = '/Users/tor/Documents/diner/tensor/lazadah/laza/img'
+IMAGES_STORE = '/Users/tor/Documents/diner/weblaz/static/img'
 IMAGES_URLS_FIELD = 'image_urls'
 IMAGES_RESULT_FIELD = 'ImagesPath'
 

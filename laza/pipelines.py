@@ -41,9 +41,15 @@ class MongoDBEnginePipeline(object):
 		# # Query search_text order by text_scored
 		# cek = [x.Title for x in PostProduk.objects.search_text('xiaomi').order_by('$text_score')]
 
-		ceker = [x.Slug for x in PostProduk.objects(Slug=item['Slug']) if x.Slug == item['Slug']]
+		ceker = [str(x.Slug) for x in PostProduk.objects(Slug=item['Slug']) if x.Slug]
+		if ceker:
+			print 'ceker:', ceker
+		else:
+			print 'else ceker'
+
+		title = str(item['Title']).lower()
 		post = PostProduk(
-			Title=item['Title'],
+			Title=title,
 			Brand = item['Brand'],
 			ProductUrl = item['ProductUrl'],
 			Price = item['Price'],
@@ -58,7 +64,14 @@ class MongoDBEnginePipeline(object):
 			Domain = item['Domain'],
 			Spek = item['Spek'],
 			ImagesPath = item['ImagesPath'],
-			Category = item['Category']
+			Category = item['Category'],
+			Reviews = item['Reviews'],
+			SKU = item['SKU'],
+			RatingValue = item['RatingValue'],
+			RatingCount = item['RatingCount'],
+			ShortDesc = item['ShortDesc'],
+			AffLink = item['AffLink'],
+			Garansi = item['Garansi']
 		)
 		if not ceker:
 			post.save()
@@ -69,7 +82,7 @@ class MongoDBEnginePipeline(object):
 class PostProduk(Document):
 	Title = StringField()
 	ProductUrl = StringField(required=True)
-	Price = StringField(max_length=100)
+	Price = StringField()
 	OldPrice = StringField(max_length=50)
 	Discount = StringField(max_length=100)
 	Images = ListField(StringField())
@@ -82,7 +95,15 @@ class PostProduk(Document):
 	Domain = StringField(max_length=50)
 	Spek = StringField()
 	ImagesPath = ListField(StringField())
-	Category = StringField(max_length=50)
+	Category = ListField()
+	Reviews = ListField()
+	SKU = StringField()
+	RatingValue = StringField()
+	RatingCount = StringField()
+	ShortDesc = StringField()
+	Garansi = StringField()
+	AffLink = StringField()
+
 	meta = {
         'indexes': [
             'Title',
@@ -91,6 +112,8 @@ class PostProduk(Document):
             ('Title', '-Title')
         ]
     }
+	
+		
 
 
 class JsonPipeline(object):

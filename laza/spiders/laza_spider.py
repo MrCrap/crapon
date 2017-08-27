@@ -16,7 +16,6 @@ from scrapy.utils.python import get_func_args
 from scrapy.selector import HtmlXPathSelector
 from twisted.internet import reactor, defer
 from scrapy.crawler import CrawlerRunner
-from scrapy.utils.log import configure_logging
 
 from laza.items import LazaItem
 import ast
@@ -40,16 +39,23 @@ def Currencer(Number, Preffix=False, Decimal=2):
 	IDR = locale.format("%.*f", (Decimal, Number), True)
 	if Preffix:
 		return "Rp. {}".format(IDR)
+
 	return IDR
 
 class Sites(Document):
 	_id = StringField()
 	category = StringField()
 	url = StringField()
+	types = StringField()
+
 		
 class LazaSpider(scrapy.Spider):
 	name = "laza"
 	allowed_domains = [ 'www.lazada.co.id' ]
+	custom_settings = {
+        'LOG_FILE': 'error_LAZA.log',
+        'LOG_LEVEL': 'ERROR'
+    }
 
 	start_urls = []
 	rules = ( Rule(LinkExtractor(allow=()), callback="parse", follow=False), )
@@ -60,32 +66,51 @@ class LazaSpider(scrapy.Spider):
 			yield scrapy.Request('http://www.lazada.co.id'+a, callback=self.Parsering, meta={'domain': 'lazada.co.id'})
 
 		# Pagination Progress
-		# next_page = response.css('.c-paging__next-link ::attr(href)').extract_first()
-		# if next_page:
-		# 	yield scrapy.Request(
-		# 		response.urljoin(next_page),
-		# 		callback=self.parse
-		# 	)
+		next_page = response.css('.c-paging__next-link ::attr(href)').extract_first()
+		if next_page:
+			yield scrapy.Request(
+				response.urljoin(next_page),
+				callback=self.parse
+			)
 
 	def start_requests(self):
 		connect('laza')
-		testing = Sites.objects()
+		testing = Sites.objects(types='laza').limit(1)
 		for x in testing:
 			yield self.make_requests_from_url(x['url'])
-		connect().close()
+
 
 	def Parsering(self, response):
- 		cats = response.css('ul.breadcrumb__list li.breadcrumb__item span.breadcrumb__item-text a>span ::text').extract()
-		category = cats[1]
+		dataJsonGet = str(response.xpath('//script[@type="application/ld+json"]/text()').extract_first()).strip()
+
+		DataJSON = json.loads(dataJsonGet)
+		list_cat = DataJSON['category']
+
+		re_cat = list_cat.replace(' > ', ',')
+		category = re_cat.split(',')
+		
 		domain = response.meta.get('domain')
-		title = response.xpath("//meta[@property='og:title']/@content").extract_first()
+		title = DataJSON['name']
 		if title:
 			title = str(title).strip().replace('\n', ' ')
+		try:
+			price = response.css('span#special_price_box ::text').extract_first()
+			price = str(price).lower().replace('rp ', '').replace('.', '').replace(',', '').strip()
+		except:
+			price = '0'
 
-		price = response.css('span#special_price_box ::text').extract_first()
-		img = response.css('.productImage ::attr(data-big)').extract()
-		img = [str(x) for x in img]
-		brand = response.css('.prod_header_brand_action a span ::text').extract_first()
+		if not price or price == '0' :
+			try:
+				price = DataJSON['price']
+			except:
+				price = DataJSON['offers']['lowPrice']
+			
+			
+
+		img = response.css('div.prd-moreImagesListContainer ul li div.lfloat.ui-border .productImage ::attr(data-big)').extract()
+		img = [str(x) for x in img if x]
+		
+		brand = DataJSON['brand']['name']
 		
 		Slug = slugify(title)
 		Tag = Slug.replace('-', ',').lower()
@@ -98,22 +123,10 @@ class LazaSpider(scrapy.Spider):
 		Keyword = Slug.replace('-', ',')
 		Keyword = Keyword+',bandingkan,harga,spek,murah'
 
-		desc = response.css('#productDetails p').extract()
-		desc = ''.join(desc).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
-		if not desc:
-			descSel = response.css('.product-description__block ::text').extract()
-			desc = ''.join(descSel).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
-
-		if not desc:
-			desc = 'Harga {title}, spek {title}, masuk dalam kategori {cat}. Cek harga dan spek {title} terupdate setiap harinya'.format(title=title, cat=brand)
-
-		# Build the summary with the sentences dictionary
-		# st = SummaryTool()
-		# sentences_dic = st.get_senteces_ranks(desc)
-		# summarys = st.get_summary(title, desc, sentences_dic)
-		# small_desc = summarys.strip()
-		small_desc = ''
-
+		desc = DataJSON['description']
+		small_desc = 'Harga {title}, spek {title}, masuk dalam kategori {cat}. Cek harga dan spek {title} terupdate setiap harinya'.format(title=title, cat=brand)
+		short_desc_ul = response.css('ul.prd-attributesList').extract_first()
+		
 		spek = response.css('table.specification-table').extract_first()
 		spek = spek.strip().replace('\n', '').replace('                        ', '').replace('        ', '').replace('            ', '')
 		spek = spek.replace('                                                                                                    ','')
@@ -125,16 +138,32 @@ class LazaSpider(scrapy.Spider):
 		except:
 			discount = '0'
 		try:
-			price_old = str(response.css('span.price_erase > #price_box ::text').extract_first())
+			price_old = DataJSON['offers']['highPrice']
 		except:
+			price_old = str(response.css('span.price_erase > #price_box ::text').extract_first())
+		else:
 			price_old = '0'
 
-		price = str(price).lower().replace('rp ', '').replace('.', '').replace(',', '').strip()
 		price_old = str(price_old).lower().replace('rp ', '').replace('.', '').replace(',', '').strip()
-		
+		try:
+			ratVal = DataJSON['aggregateRating']['ratingValue']
+			ratVal = int(round(ratVal*20))
+			ratVal = str(ratVal)
+			RatingCount = DataJSON['aggregateRating']['ratingCount']
+		except:
+			ratVal = '0'
+			RatingCount = '0'
+
+		try:
+			reviews = DataJSON['review']
+		except:
+			reviews = []
+
+		garansi = response.css('.warranty-info__message ::text').extract_first()
+
 		data = dict(
 			title = title,
-			price = price,
+			price = str(price),
 			price_old = price_old,
 			discount = str(discount).strip(),
 			produkUrl = response.url,
@@ -148,7 +177,13 @@ class LazaSpider(scrapy.Spider):
 			Domain = domain,
 			Spek = str(spek),
 			SmallDesc = small_desc,
-			category=category
+			category=category,
+			reviews = reviews,
+			sku = DataJSON['sku'],
+			ratingValue = str(ratVal),
+			ratingCount = str(RatingCount),
+			short_desc_ul=short_desc_ul,
+			garansi = garansi
 		)
 
 		return self.Iteming(data)
@@ -174,28 +209,12 @@ class LazaSpider(scrapy.Spider):
 			# item['ImagesPath'] = ''
 			item['SmallDesc'] = data['SmallDesc']
 			item['Category'] = data['category']
+			item['Reviews'] = data['reviews']
+			item['SKU'] = data['sku']
+			item['RatingValue'] = data['ratingValue']
+			item['RatingCount'] = data['ratingCount']
+			item['ShortDesc'] = data['short_desc_ul']
+			item['Garansi'] = data['garansi']
+			item['AffLink'] = ''
 			
 		yield item
-
-
-
-
-# class MySpider1(scrapy.Spider):
-# 	print '1'
-# 	name = 'spider1'
-
-# class MySpider2(scrapy.Spider):
-# 	print '2'
-# 	name = 'spider1'
-
-# configure_logging()
-# runner = CrawlerRunner()
-
-# @defer.inlineCallbacks
-# def crawl():
-# 	yield runner.crawl(MySpider1)
-# 	yield runner.crawl(MySpider2)
-# 	reactor.stop()
-
-# crawl()
-# reactor.run()

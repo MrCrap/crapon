@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+'''YA RAZZAQ ZULQUWATIL MATIN URZUKNI'''
+
 # Define here the models for your scraped items
 #
 # See documentation in:
@@ -25,4 +27,10 @@ class LazaItem(scrapy.Item):
 	ImagesPath = scrapy.Field()
 	SmallDesc = scrapy.Field()
 	Category = scrapy.Field()
-	
+	Reviews = scrapy.Field()
+	SKU = scrapy.Field()
+	RatingValue = scrapy.Field()
+	RatingCount = scrapy.Field()
+	ShortDesc = scrapy.Field()
+	Garansi = scrapy.Field()
+	AffLink = scrapy.Field()

@@ -16,7 +16,6 @@ from scrapy.utils.python import get_func_args
 from scrapy.selector import HtmlXPathSelector
 from twisted.internet import reactor, defer
 from scrapy.crawler import CrawlerRunner
-from scrapy.utils.log import configure_logging
 
 from laza.items import LazaItem
 import ast
@@ -40,7 +39,6 @@ def Currencer(Number, Preffix=False, Decimal=2):
 	IDR = locale.format("%.*f", (Decimal, Number), True)
 	if Preffix:
 		return "Rp. {}".format(IDR)
-
 	return IDR
 
 class Sites(Document):
@@ -48,12 +46,13 @@ class Sites(Document):
 	category = StringField()
 	url = StringField()
 	types = StringField()
+
 		
 class LazaSpider(scrapy.Spider):
-	name = "mm"
-	allowed_domains = [ 'www.mataharimall.com' ]
+	name = "jd"
+	allowed_domains = [ 'www.jd.id' ]
 	custom_settings = {
-        'LOG_FILE': 'error_MM.log',
+        'LOG_FILE': 'error_jd.log',
         'LOG_LEVEL': 'ERROR'
     }
 
@@ -61,15 +60,15 @@ class LazaSpider(scrapy.Spider):
 	rules = ( Rule(LinkExtractor(allow=()), callback="parse", follow=False), )
 
 	def parse(self, response):
-		item_links = response.css('a.c-card-product__link ::attr(href)').extract()
+		item_links = response.css('.p-pic a ::attr(href)').extract()
 		for a in item_links:
-			url_query = urlparse(a).query
-			links = url_query.split('&')[2].replace('ct=', '').replace('https%3A%2F%2F', 'https://').replace('%2F', '/')
+			links = 'https:'+str(a)
 			yield scrapy.Request(links, callback=self.Parsering)
 
-		# # Pagination Progress
-		next_page = response.css('.c-pagination--next a ::attr(href)').extract_first()
+		# Pagination Progress
+		next_page = response.css('.pagination > a.p-next.p-turn ::attr(href)').extract_first()
 		if next_page:
+			next_page = 'https:'+next_page
 			yield scrapy.Request(
 				response.urljoin(next_page),
 				callback=self.parse
@@ -77,97 +76,75 @@ class LazaSpider(scrapy.Spider):
 
 	def start_requests(self):
 		connect('laza')
-		GetUrl = Sites.objects(types='mm')
+		GetUrl = Sites.objects(types='jd')
 		for x in GetUrl:
 			yield self.make_requests_from_url(x['url'])
-		connect().close()
+
 
 	def Parsering(self, response):
- 		cats = response.css('ul.c-breadcrumb__body li.c-breadcrumb__item a>span ::text').extract()
- 		del cats[0]
-		category = cats
+		price_script = response.xpath('//script[@type="application/ld+json"]/text()').extract_first()
+		json_script = json.loads(price_script)
+		title = json_script['name']
+		# print 'title', title
 
-		dataJsonGet = str(response.xpath('//script[@type="application/ld+json"]/text()').extract_first()).strip()
-		DataJSON = json.loads(dataJsonGet)
-
-		title = DataJSON['name']
-		title = str(title).strip().replace('\n', ' ')
-
-		price = DataJSON['offers']['price']
-		img = str(DataJSON['image']).split()
-		brand = DataJSON['brand']['name']
-		desc = str(DataJSON['description']).strip().replace('\n', ' ').replace('  ', '').replace('                     ', '')
-
-		spek = response.css('table.c-table-spec-products').extract_first()
-		spek = spek.strip().replace('\n', '').replace('                        ', '').replace('        ', '').replace('            ', '')
-		spek = spek.replace('                                                                                                    ','')
-		
-		if price:
-			price = str(price).strip()
+		brand = response.xpath('//input[@id="productBrand-ga"]/@value').extract_first()
+		if not brand:
+			brand = ''
 
 		try:
-			discount = response.css('span.c-discount-label ::text').extract_first()
-			discount = str(discount)
-			if discount == 'None':
-				discount = '0'
+			price = int(json_script['offers']['lowPrice'])
 		except:
-			discount = '0'
+			price = '0'
+
+		img = json_script['image']
+		img = img.split()
 
 		try:
-			price_old = response.css('div.c-product__price ::text').extract_first()
-			price_old = str(price_old)
+			price_old = int(json_script['offers']['highPrice'])
 		except:
 			price_old = '0'
 
-		Tag = brand
-		SlugTitle = title.replace(' - ', ' ')
-		SlugReplace = SlugTitle.replace('[', '').replace(']', '').replace('/ ', '').replace('/', '')
-		Slug = SlugReplace.replace(' ', '-').lower()
-
-		try:
-			Summary = response.xpath("//meta[@property='og:description']/@content").extract_first()
-		except:
-			Summary = response.xpath("//meta[@name='description']/@content").extract_first()
+		garansi_list = response.css('div.from > span.warrp ::text').extract()
+		if garansi_list:
+			garansi = garansi_list[1]
+		else:
+			garansi = ''
 		
-		Keyword = Slug.replace('-', ',')
-		Keyword = Keyword+',bandingkan,harga,spek,murah'
+		# Note Currencer
+		# differentPrice = bigPrice - lowPrice
+		# discount = differentPrice / bigPrice * 100
+		if int(price_old) > 0:
+			firstPrice = int(price_old)
+		else:
+			firstPrice = int(price)
 
+		differentPrice = firstPrice - int(price)
+		if int(differentPrice) > 0:
+			discountPrice = (float(differentPrice) / float(firstPrice)) * 100
+			discount = int(discountPrice)
+		else:
+			discount = 0
 		try:
-			ratVal = DataJSON['aggregateRating']['ratingValue']
+			ratVal = json_script['aggregateRating']['ratingValue']
 			ratVal = int(round(ratVal*20))
 			ratVal = str(ratVal)
-			RatingCount = DataJSON['aggregateRating']['ratingCount']
+			RatingCount = json_script['aggregateRating']['ratingCount']
 		except:
 			ratVal = '0'
 			RatingCount = '0'
 
-		try:
-			reviews = DataJSON['review']
-		except:
-			reviews = []
-		
 		data = dict(
 			title = title,
-			price = price,
-			price_old = price_old,
-			discount = str(discount).strip(),
 			produkUrl = response.url,
+			price = str(price),
+			price_old = str(price_old),
+			discount = str(discount),
 			img = img,
-			brand = str(brand), 
-			desc= str(desc),
-			Summary = str(Summary).strip(),
-			Slug = Slug,
-			Keyword = Keyword,
-			Tag = str(Tag),
-			Domain = 'mataharimall.com',
-			Spek = str(spek),
-			SmallDesc = '',
-			category=category,
-			reviews = reviews,
-			sku = DataJSON['mpn'],
+			brand = str(brand),
+			sku = json_script['sku'],
 			ratingValue = str(ratVal),
 			ratingCount = str(RatingCount),
-			short_desc_ul=''
+			garansi = garansi
 		)
 
 		return self.Iteming(data)
@@ -183,22 +160,21 @@ class LazaSpider(scrapy.Spider):
 			item['Discount'] = data['discount']
 			item['Images'] = data['img']
 			item['Brand'] = data['brand']
-			item['Description']= data['desc']
-			item['Summary'] = data['Summary']
-			item['Slug'] = data['Slug']
-			item['Keyword'] = data['Keyword']
-			item['Tag'] = data['Tag']
-			item['Domain'] = data['Domain']
-			item['Spek'] = data['Spek']
-			# item['ImagesPath'] = ''
-			item['SmallDesc'] = data['SmallDesc']
-			item['Category'] = data['category']
-			item['Reviews'] = data['reviews']
+			item['Description']= ''
+			item['Summary'] = ''
+			item['Slug'] = ''
+			item['Keyword'] = ''
+			item['Tag'] = ''
+			item['Domain'] = 'jd.id'
+			item['Spek'] = ''
+			item['SmallDesc'] = ''
+			item['Category'] = []
+			item['Reviews'] = []
 			item['SKU'] = data['sku']
 			item['RatingValue'] = data['ratingValue']
 			item['RatingCount'] = data['ratingCount']
 			item['ShortDesc'] = ''
-			item['Garansi'] = ''
+			item['Garansi'] = data['garansi']
 			item['AffLink'] = ''
 			
 		yield item
